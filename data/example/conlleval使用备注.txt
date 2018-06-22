@@ -1,0 +1,7 @@
+linux环境下
+
+./conlleval.pl <output.txt >result.txt
+
+例如 ./conlleval <output.txt >result.txt
+
+也可自己按照分类任务的方式通过计算准确率、召回率得到F1值
