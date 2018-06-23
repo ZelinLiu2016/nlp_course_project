@@ -208,10 +208,7 @@ def load_med_dict(path):
     return med_dict
 
 
-if __name__ == "__main__":
-    # train_sents = list(nltk.corpus.conll2002.iob_sents('esp.train'))
-    # test_sents = list(nltk.corpus.conll2002.iob_sents('esp.testb'))
-    # test_sents = load_test_data("data/test.eval")
+def crf_grid_search():
     stem = nltk.stem.SnowballStemmer('english')
     labels = ['B-problem', 'I-problem', 'B-test', 'I-test', 'B-treatment', 'I-treatment']
     medical_dict = load_med_dict("wordlist.txt")
@@ -236,8 +233,8 @@ if __name__ == "__main__":
     params_space = {
         # 'c1': [0,0,1,0,2,0,3,0,4,0.5,0.6,0.7,0.8,0,9,1],
         # 'c2': [0,0,1,0,2,0,3,0,4,0.5,0.6,0.7,0.8,0,9,1],
-        'c1': [i/100.0 for i in range(3, 6)],
-        'c2': [i/100.0 for i in range(3, 6)],
+        'c1': [i / 100.0 for i in range(3, 6)],
+        'c2': [i / 100.0 for i in range(3, 6)],
     }
 
     # use the same metric for evaluation
@@ -251,28 +248,73 @@ if __name__ == "__main__":
     print('best CV score:', gs.best_score_)
     print('model size: {:0.2f}M'.format(gs.best_estimator_.size_ / 1000000))
 
-    # crf = sklearn_crfsuite.CRF(
-    #     algorithm='lbfgs',
-    #     # c1=0.08624993064986249,
-    #     # c2=0.06097519251873882,
-    #     # nopost
-    #     # c1=0.009868212760639313,
-    #     # c2=0.04134003944483053,
-    #     # post
-    #     c1=0.08,
-    #     c2=0.05,
-    #     max_iterations=100,
-    #     all_possible_transitions=True
-    # )
-    # crf.fit(X_train, y_train)
-    # y_pred = crf.predict(X_test)
-    # metrics.flat_f1_score(y_test, y_pred,
-    #                       average='weighted', labels=labels)
-    # sorted_labels = sorted(
-    #     labels,
-    #     key=lambda name: (name[1:], name[0])
-    # )
-    # print(metrics.flat_classification_report(
-    #     y_test, y_pred, labels=sorted_labels, digits=3
-    # ))
-    # generate_result("data/dev.eval", y_pred)
+
+def run_test(c1=0.08, c2=0.05):
+    stem = nltk.stem.SnowballStemmer('english')
+    labels = ['B-problem', 'I-problem', 'B-test', 'I-test', 'B-treatment', 'I-treatment']
+    train_sents = load_data("data/train.eval")
+    test_sents = load_data("data/dev.eval")
+    X_train = [sent2features(s, stem) for s in train_sents]
+    X_test = [sent2features(s, stem) for s in test_sents]
+    y_train = [sent2labels(s) for s in train_sents]
+    y_test = [sent2labels(s) for s in test_sents]
+    crf = sklearn_crfsuite.CRF(
+        algorithm='lbfgs',
+        # c1=0.08624993064986249,
+        # c2=0.06097519251873882,
+        # nopost
+        # c1=0.009868212760639313,
+        # c2=0.04134003944483053,
+        # post
+        c1=c1,
+        c2=c2,
+        max_iterations=100,
+        all_possible_transitions=True
+    )
+    crf.fit(X_train, y_train)
+    y_pred = crf.predict(X_test)
+    metrics.flat_f1_score(y_test, y_pred,
+                          average='weighted', labels=labels)
+    sorted_labels = sorted(
+        labels,
+        key=lambda name: (name[1:], name[0])
+    )
+    print(metrics.flat_classification_report(
+        y_test, y_pred, labels=sorted_labels, digits=3
+    ))
+
+
+def generate_test_result(c1=0.08, c2=0.05):
+    labels = ['B-problem', 'I-problem', 'B-test', 'I-test', 'B-treatment', 'I-treatment']
+    train_sents = load_data("data/train.eval")
+    test_sents = load_test_data("data/test.eval")
+    X_train = [sent2features(s, stem) for s in train_sents]
+    X_test = [sent2features(s, stem) for s in test_sents]
+    y_train = [sent2labels(s) for s in train_sents]
+    crf = sklearn_crfsuite.CRF(
+        algorithm='lbfgs',
+        # c1=0.08624993064986249,
+        # c2=0.06097519251873882,
+        # nopost
+        # c1=0.009868212760639313,
+        # c2=0.04134003944483053,
+        # post
+        c1=c1,
+        c2=c2,
+        max_iterations=100,
+        all_possible_transitions=True
+    )
+    crf.fit(X_train, y_train)
+    y_pred = crf.predict(X_test)
+    generate_result("data/dev.eval", y_pred)
+
+
+if __name__ == "__main__":
+    nltk.download()
+    stem = nltk.stem.SnowballStemmer('english')
+    labels = ['B-problem', 'I-problem', 'B-test', 'I-test', 'B-treatment', 'I-treatment']
+    medical_dict = load_med_dict("wordlist.txt")
+
+    run_test(0.08, 0.05)
+    # crf_grid_search()
+    # generate_test_result(0.08, 0.05)
